@@ -94,35 +94,35 @@ export default function App() {
     setToken("");
   };
 
-const addDefense = () => {
-  const id = prompt("Defense ID");
-  const name = prompt("Defense Name");
+  const addDefense = () => {
+    const id = prompt("Defense ID");
+    const name = prompt("Defense Name");
 
-  if (!id || !name) {
-    alert("ID and Name required");
-    return;
-  }
+    if (!id || !name) {
+      alert("ID and Name required");
+      return;
+    }
 
-  if (data.defenses[id]) {
-    alert("Defense already exists");
-    return;
-  }
+    if (data.defenses[id]) {
+      alert("Defense already exists");
+      return;
+    }
 
-  const slug = name.toLowerCase().replace(/\s+/g, "-");
-  const icon = `https://cdn.clashwidget.online/crafted/${slug}.png`;
+    const slug = name.toLowerCase().replace(/\s+/g, "-");
+    const icon = `https://cdn.clashwidget.online/crafted/${slug}.png`;
 
-  setData((prev) => ({
-    ...prev,
-    defenses: {
-      ...prev.defenses,
-      [id]: {
-        name,
-        icon,
-        modules: {},
+    setData((prev) => ({
+      ...prev,
+      defenses: {
+        ...prev.defenses,
+        [id]: {
+          name,
+          icon,
+          modules: {},
+        },
       },
-    },
-  }));
-};
+    }));
+  };
 
   const deleteDefense = (id) => {
     if (!confirm(`Delete defense "${data.defenses[id].name}"?`)) return;
@@ -137,6 +137,10 @@ const addDefense = () => {
     const stat = prompt("Stat key");
     if (!id || !name || !stat) return;
 
+    if (data.defenses[defenseId].modules[id]) {
+      alert("Module already exists");
+      return;
+    }
     setData((prev) => ({
       ...prev,
       defenses: {
@@ -178,6 +182,18 @@ const addDefense = () => {
     try {
       setLoading(true);
       const payload = { ...data, updatedAt: Date.now() };
+
+      for (const [id, def] of Object.entries(data.defenses)) {
+        if (!def.name || !def.icon) {
+          alert(`Invalid defense: ${id}`);
+          return;
+        }
+
+        if (!def.icon.startsWith("http")) {
+          alert(`Invalid icon URL for ${def.name}`);
+          return;
+        }
+      }
 
       const res = await fetch(
         `${BASE_URL}/v1/admin/mappings/crafted-defenses`,
@@ -318,6 +334,9 @@ const addDefense = () => {
                   </label>
                   <input
                     type="datetime-local"
+                    value={new Date(data.duration.start)
+                      .toISOString()
+                      .slice(0, 16)}
                     onChange={(e) =>
                       setData({
                         ...data,
@@ -337,6 +356,9 @@ const addDefense = () => {
                   </label>
                   <input
                     type="datetime-local"
+                    value={new Date(data.duration.end)
+                      .toISOString()
+                      .slice(0, 16)}
                     onChange={(e) =>
                       setData({
                         ...data,
@@ -402,12 +424,48 @@ const addDefense = () => {
                     className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-6 hover:border-slate-600 transition-colors"
                   >
                     <div className="flex items-start justify-between mb-4">
-                      
-                      <div>
-                        <h3 className="text-xl font-bold text-blue-400">
-                          {def.name}
-                        </h3>
-                        <p className="text-sm text-slate-500 font-mono">{id}</p>
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={def.icon}
+                          alt={def.name}
+                          className="w-10 h-10 rounded bg-slate-900 border"
+                          onError={(e) => {
+                            e.currentTarget.src =
+                              "https://cdn.clashwidget.online/crafted/default.png";
+                          }}
+                        />
+                        <button
+                          onClick={() => {
+                            const newIcon = prompt("Update Icon URL", def.icon);
+
+                            if (!newIcon || !newIcon.startsWith("http")) {
+                              alert("Invalid icon URL");
+                              return;
+                            }
+
+                            setData((prev) => ({
+                              ...prev,
+                              defenses: {
+                                ...prev.defenses,
+                                [id]: {
+                                  ...prev.defenses[id],
+                                  icon: newIcon,
+                                },
+                              },
+                            }));
+                          }}
+                          className="bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-400 border border-yellow-600/30 px-3 py-1.5 rounded-lg text-sm"
+                        >
+                          🖼 Icon
+                        </button>
+                        <div>
+                          <h3 className="text-xl font-bold text-blue-400">
+                            {def.name}
+                          </h3>
+                          <p className="text-sm text-slate-500 font-mono">
+                            {id}
+                          </p>
+                        </div>
                       </div>
                       <div className="flex gap-2">
                         <button
